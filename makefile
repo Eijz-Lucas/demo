@@ -15,6 +15,8 @@ FILELIST   ?= filelist/$(TOP).f
 OBJ_DIR    ?= obj_dir
 WAVE       ?= wave.fst
 VERILATOR  ?= verilator
+IVERILOG   ?= iverilog
+VVP        ?= vvp
 
 # Verilator --timing generates C++20 coroutine code.  Prefer an installed
 # modern GCC over the system default (this environment's g++ points to 9).
@@ -51,6 +53,13 @@ SIM_BIN = $(OBJ_DIR)/V$(TB_TOP)
 
 all: run
 
+ifeq ($(TOP),flash_controller)
+# Flash 模型由 Icarus Verilog 负责编译，保留 verilate 目标名以兼容原用法。
+verilate:
+	@echo "=== Icarus compiling TOP=$(TOP) ==="
+	mkdir -p $(OBJ_DIR)
+	$(IVERILOG) -g2012 -s $(TB_TOP) -o $(SIM_BIN) -f $(FILELIST)
+else
 # 生成 C++ 模型（不编译成可执行文件）
 verilate:
 	$(VERILATOR) --cc --exe \
@@ -60,8 +69,24 @@ verilate:
 	             --Mdir $(OBJ_DIR) \
 	             -Wno-fatal \
 	             -f $(FILELIST)
+endif
 
 # 编译 + 运行
+ifeq ($(TOP),flash_controller)
+run:
+	@echo "=== Icarus Verilog TOP=$(TOP) ==="
+	mkdir -p $(OBJ_DIR)
+	$(IVERILOG) -g2012 -s $(TB_TOP) -o $(SIM_BIN) -f $(FILELIST)
+	@echo ""
+	@echo "=== Running simulation ==="
+	$(VVP) $(SIM_BIN)
+	@echo ""
+	@if [ -f flash_controller.vcd ]; then \
+	    echo "=== Waveform generated: flash_controller.vcd ($$(stat -c%s flash_controller.vcd) bytes) ==="; \
+	else \
+	    echo "=== WARNING: flash_controller.vcd NOT generated ==="; \
+	fi
+else
 run:
 	@echo "=== Verilating TOP=$(TOP) ==="
 	$(VERILATOR) $(VFLAGS) -f $(FILELIST)
@@ -74,11 +99,18 @@ run:
 	else \
 	    echo "=== WARNING: $(WAVE) NOT generated ==="; \
 	fi
+endif
 
 # 运行并打开波形
+ifeq ($(TOP),flash_controller)
+wave: run
+	@echo "=== Opening flash_controller.vcd with GTKWave ==="
+	gtkwave flash_controller.vcd &
+else
 wave: run
 	@echo "=== Opening $(WAVE) with GTKWave ==="
 	gtkwave $(WAVE) &
+endif
 
 clean:
 	rm -rf $(OBJ_DIR)
