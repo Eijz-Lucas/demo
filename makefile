@@ -16,6 +16,19 @@ OBJ_DIR    ?= obj_dir
 WAVE       ?= wave.fst
 VERILATOR  ?= verilator
 
+# Verilator --timing generates C++20 coroutine code.  Prefer an installed
+# modern GCC over the system default (this environment's g++ points to 9).
+ifeq ($(origin CXX),default)
+CXX := $(or $(shell command -v g++-11 2>/dev/null), \
+           $(shell command -v g++-10 2>/dev/null), \
+           $(shell command -v g++ 2>/dev/null))
+endif
+CXXFLAGS += -std=c++20
+export CXXFLAGS
+# Verilator's --binary invokes a recursive make whose generated makefile
+# otherwise hard-codes the compiler detected when Verilator was built.
+override MAKEFLAGS := $(MAKEFLAGS) CXX=$(CXX) LINK=$(CXX)
+
 #--------- Verilator 选项 ---------
 #   --binary        : 生成可执行文件（内置 main）
 #   --timing        : 支持 #delay / wait / always 等时序语句
