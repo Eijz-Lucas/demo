@@ -60,12 +60,12 @@ module tb_flash_controller;
         int cycles;
         begin
             @(negedge clk);
-            paddr   <= addr;
-            pwrite  <= 1'b0;
-            psel    <= 1'b1;
-            penable <= 1'b0;
+            paddr   = addr;
+            pwrite  = 1'b0;
+            psel    = 1'b1;
+            penable = 1'b0;
             @(negedge clk);
-            penable <= 1'b1;
+            penable = 1'b1;
             cycles = 0;
             while (!pready && cycles < 20000) begin
                 @(negedge clk);
@@ -75,9 +75,9 @@ module tb_flash_controller;
             data = prdata;
             err  = pslverr;
             @(negedge clk);
-            psel    <= 1'b0;
-            penable <= 1'b0;
-            paddr   <= '0;
+            psel    = 1'b0;
+            penable = 1'b0;
+            paddr   = '0;
         end
     endtask
 
@@ -89,13 +89,13 @@ module tb_flash_controller;
         int cycles;
         begin
             @(negedge clk);
-            paddr   <= addr;
-            pwdata  <= value;
-            pwrite  <= 1'b1;
-            psel    <= 1'b1;
-            penable <= 1'b0;
+            paddr   = addr;
+            pwdata  = value;
+            pwrite  = 1'b1;
+            psel    = 1'b1;
+            penable = 1'b0;
             @(negedge clk);
-            penable <= 1'b1;
+            penable = 1'b1;
             cycles = 0;
             while (!pready && cycles < 20000) begin
                 @(negedge clk);
@@ -104,11 +104,11 @@ module tb_flash_controller;
             if (!pready) $fatal(1, "APB write timeout at %h", addr);
             err = pslverr;
             @(negedge clk);
-            psel    <= 1'b0;
-            penable <= 1'b0;
-            pwrite  <= 1'b0;
-            paddr   <= '0;
-            pwdata  <= '0;
+            psel    = 1'b0;
+            penable = 1'b0;
+            pwrite  = 1'b0;
+            paddr   = '0;
+            pwdata  = '0;
         end
     endtask
 
@@ -118,11 +118,15 @@ module tb_flash_controller;
         logic [31:0] status;
         integer      poll;
 
+`ifdef VERILATOR
+        $dumpfile("wave.fst");
+`else
         $dumpfile("flash_controller.vcd");
+`endif
         $dumpvars(0, tb_flash_controller);
 
         repeat (20) @(negedge clk);
-        rst_n <= 1'b1;
+        rst_n = 1'b1;
         repeat (200) @(negedge clk);
 
         apb_read(32'h0000_0100, data, err);

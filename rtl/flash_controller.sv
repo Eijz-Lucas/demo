@@ -353,7 +353,10 @@ module flash_controller (
                                     end else if (dummy_count != 0) begin
                                         tx_count <= 0;
                                         state <= ST_DUMMY;
-                                        dq0_out <= 1'b0;
+                                        // Keep a visible dummy-phase marker for 2-state simulators.
+                                        // Releasing DQ0 then creates a 1 -> 0 transition even when
+                                        // the simulator does not preserve a Z value on inout nets.
+                                        dq0_out <= 1'b1;
                                     end else begin
                                         state <= ST_DATA;
                                         data_count <= (current_len * 8) / data_lanes(current_mode);

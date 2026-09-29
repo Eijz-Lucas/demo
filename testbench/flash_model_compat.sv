@@ -59,7 +59,7 @@ module flash_model_compat #(
         integer byte_addr;
         integer bit_in_byte;
         begin
-            byte_addr = address + output_bit / 8;
+            byte_addr = {8'd0, address} + output_bit / 8;
             bit_in_byte = output_bit % 8;
             release_outputs();
             case (lanes)
